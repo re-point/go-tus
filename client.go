@@ -164,6 +164,42 @@ func (c *Client) CreateOrResumeUpload(u *Upload) (*Uploader, error) {
 	return nil, err
 }
 
+func  (c *Client) TerminateUpload(u *Upload) error {
+	if !c.Config.Resume {
+		return ErrResumeNotEnabled
+	}
+
+	url, found := c.Config.Store.Get(u.Fingerprint)
+	if !found {
+		return ErrUploadNotFound
+	}
+
+	req, err := http.NewRequest("DELETE", url, nil)
+
+	if err != nil {
+		return err
+	}
+
+	res, err := c.Do(req)
+
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	switch res.StatusCode {
+	case 204:
+		return nil
+	case 403, 404, 410:
+		// file doesn't exists.
+		return ErrUploadNotFound
+	case 412:
+		return ErrVersionMismatch
+	default:
+		return newClientError(res)
+	}
+}
+
 func (c *Client) uploadChunck(url string, body io.Reader, size int64, offset int64) (int64, error) {
 	var method string
 

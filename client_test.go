@@ -333,3 +333,59 @@ func uploadIDFromURL(url string) string {
 	parts := strings.Split(url, "/")
 	return parts[len(parts)-1]
 }
+
+
+func (s *UploadTestSuite) TestTerminate() {
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	file := fmt.Sprintf("%s/%d", os.TempDir(), time.Now().Unix())
+
+	f, err := os.Create(file)
+	s.Nil(err)
+
+	defer f.Close()
+
+	err = f.Truncate(1048576 * 150) // 150 MB
+	s.Nil(err)
+
+	cfg := &Config{
+		ChunkSize:           2 * 1024 * 1024,
+		Resume:              true,
+		OverridePatchMethod: false,
+		Store:               NewMockStore(),
+		Header: map[string][]string{
+			"X-Extra-Header": []string{"somevalue"},
+		},
+	}
+
+	client, err := NewClient(s.url, cfg)
+	s.Nil(err)
+
+	upload, err := NewUploadFromFile(f)
+	s.Nil(err)
+
+	uploader, err := client.CreateUpload(upload)
+	s.Nil(err)
+	s.NotNil(uploader)
+
+	// This will stop the first upload.
+	go func() {
+		time.Sleep(250 * time.Millisecond)
+		uploader.Abort()
+	}()
+
+	err = client.TerminateUpload(upload)
+	s.Nil(err)
+
+	// uploader, err = client.ResumeUpload(upload)
+	// s.Nil(err)
+	// s.NotNil(uploader)
+
+	// err = uploader.Upload()
+	// s.Nil(err)
+
+	_, err = s.store.GetUpload(ctx, uploadIDFromURL(uploader.url))
+	s.NotNil(err)
+}
