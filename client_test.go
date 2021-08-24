@@ -284,7 +284,7 @@ func (s *UploadTestSuite) TestResumeUpload() {
 		OverridePatchMethod: false,
 		Store:               NewMockStore(),
 		Header: map[string][]string{
-			"X-Extra-Header": []string{"somevalue"},
+			"X-Extra-Header": {"somevalue"},
 		},
 	}
 
@@ -356,7 +356,7 @@ func (s *UploadTestSuite) TestTerminate() {
 		OverridePatchMethod: false,
 		Store:               NewMockStore(),
 		Header: map[string][]string{
-			"X-Extra-Header": []string{"somevalue"},
+			"X-Extra-Header": {"somevalue"},
 		},
 	}
 
@@ -378,13 +378,6 @@ func (s *UploadTestSuite) TestTerminate() {
 
 	err = client.TerminateUpload(upload)
 	s.Nil(err)
-
-	// uploader, err = client.ResumeUpload(upload)
-	// s.Nil(err)
-	// s.NotNil(uploader)
-
-	// err = uploader.Upload()
-	// s.Nil(err)
 
 	_, err = s.store.GetUpload(ctx, uploadIDFromURL(uploader.url))
 	s.NotNil(err)

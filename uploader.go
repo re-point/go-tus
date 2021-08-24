@@ -88,7 +88,7 @@ func (u *Uploader) UploadChunck() error {
 
 // Waits for a signal to broadcast to all subscribers
 func (u *Uploader) broadcastProgress() {
-	for _ = range u.notifyChan {
+	for range u.notifyChan {
 		for _, c := range u.uploadSubs {
 			c <- *u.upload
 		}
