@@ -138,7 +138,7 @@ func (c *Client) ResumeUpload(u *Upload) (*Uploader, error) {
 		return nil, ErrUploadNotFound
 	}
 
-	offset, err := c.getUploadOffset(url)
+	offset, err := c.getUploadOffset(url, u.size)
 
 	if err != nil {
 		return nil, err
@@ -200,8 +200,12 @@ func  (c *Client) TerminateUpload(u *Upload) error {
 	}
 }
 
-func (c *Client) uploadChunck(url string, body io.Reader, size int64, offset int64) (int64, error) {
+func (c *Client) uploadChunck(url string, body io.Reader, size int64, offset int64, totalSize int64) (int64, error) {
 	var method string
+	
+	if totalSize < offset + size {
+		return -1, ErrServerSizeMismatch
+	}
 
 	if !c.Config.OverridePatchMethod {
 		method = "PATCH"
@@ -248,7 +252,7 @@ func (c *Client) uploadChunck(url string, body io.Reader, size int64, offset int
 	}
 }
 
-func (c *Client) getUploadOffset(url string) (int64, error) {
+func (c *Client) getUploadOffset(url string, totalSize int64) (int64, error) {
 	req, err := http.NewRequest("HEAD", url, nil)
 
 	if err != nil {
@@ -264,13 +268,21 @@ func (c *Client) getUploadOffset(url string) (int64, error) {
 
 	switch res.StatusCode {
 	case 200:
-		i, err := strconv.ParseInt(res.Header.Get("Upload-Offset"), 10, 64)
-
-		if err == nil {
-			return i, nil
-		} else {
+		offset, err := strconv.ParseInt(res.Header.Get("Upload-Offset"), 10, 64)
+		if err != nil {
 			return -1, err
 		}
+
+		serverLength, err := strconv.ParseInt(res.Header.Get("Upload-Length"), 10, 64)
+		if err != nil {
+			return -1, err
+		}
+		
+		if serverLength != totalSize {
+			return -1, ErrServerSizeMismatch
+		}
+		
+		return offset, nil
 	case 403, 404, 410:
 		// file doesn't exists.
 		return -1, ErrUploadNotFound

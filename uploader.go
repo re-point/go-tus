@@ -2,7 +2,6 @@ package tus
 
 import (
 	"bytes"
-	"log"
 )
 
 type Uploader struct {
@@ -72,11 +71,7 @@ func (u *Uploader) UploadChunck() error {
 
 	body := bytes.NewBuffer(data[:size])
 
-	if u.upload.size < u.offset + int64(size) {
-		log.Fatal("oversize!!!!")
-	}
-
-	newOffset, err := u.client.uploadChunck(u.url, body, int64(size), u.offset)
+	newOffset, err := u.client.uploadChunck(u.url, body, int64(size), u.offset, u.upload.size)
 
 	if err != nil {
 		return err

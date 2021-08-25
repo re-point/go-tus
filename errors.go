@@ -17,6 +17,7 @@ var (
 	ErrResumeNotEnabled  = errors.New("resuming not enabled")
 	ErrFingerprintNotSet = errors.New("fingerprint not set")
 	ErrUrlNotRecognized  = errors.New("url not recognized")
+	ErrServerSizeMismatch  	 = errors.New("internal error: server size mismatch")
 )
 
 type ClientError struct {
