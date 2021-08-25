@@ -3,6 +3,7 @@ package tus
 import (
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	netUrl "net/url"
 	"strconv"
@@ -204,6 +205,7 @@ func (c *Client) uploadChunck(url string, body io.Reader, size int64, offset int
 	var method string
 	
 	if totalSize < offset + size {
+		log.Printf("invalid serverside: expected %d, actual %d", totalSize, offset + size)
 		return -1, ErrServerSizeMismatch
 	}
 
@@ -222,7 +224,6 @@ func (c *Client) uploadChunck(url string, body io.Reader, size int64, offset int
 	req.Header.Set("Content-Type", "application/offset+octet-stream")
 	req.Header.Set("Content-Length", strconv.FormatInt(size, 10))
 	req.Header.Set("Upload-Offset", strconv.FormatInt(offset, 10))
-	req.Header.Set("Upload-Length", strconv.FormatInt(totalSize, 10))
 
 	if c.Config.OverridePatchMethod {
 		req.Header.Set("X-HTTP-Method-Override", "PATCH")
@@ -280,6 +281,7 @@ func (c *Client) getUploadOffset(url string, totalSize int64) (int64, error) {
 		}
 		
 		if serverLength != totalSize {
+			log.Printf("invalid serverside: expected %d, actual %d", totalSize, serverLength)
 			return -1, ErrServerSizeMismatch
 		}
 		
