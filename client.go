@@ -205,7 +205,7 @@ func (c *Client) uploadChunck(url string, body io.Reader, size int64, offset int
 	var method string
 	
 	if totalSize < offset + size {
-		log.Printf("invalid serverside: expected %d, actual %d", totalSize, offset + size)
+		log.Printf("compute | invalid serverside: expected %d, actual %d", totalSize, offset + size)
 		return -1, ErrServerSizeMismatch
 	}
 
@@ -281,7 +281,7 @@ func (c *Client) getUploadOffset(url string, totalSize int64) (int64, error) {
 		}
 		
 		if serverLength != totalSize {
-			log.Printf("invalid serverside: expected %d, actual %d", totalSize, serverLength)
+			log.Printf("compare | invalid serverside: expected %d, actual %d", totalSize, serverLength)
 			return -1, ErrServerSizeMismatch
 		}
 		
