@@ -13,7 +13,7 @@ type Metadata map[string]string
 
 type Upload struct {
 	stream io.ReadSeeker
-	size   int64
+	totalSize   int64
 	offset int64
 
 	Fingerprint string
@@ -21,32 +21,32 @@ type Upload struct {
 }
 
 // Updates the Upload information based on offset.
-func (u *Upload) updateProgress(offset int64) {
+func (u *Upload) SetOffset(offset int64) {
 	u.offset = offset
 }
 
-// Returns whether this upload is finished or not.
-func (u *Upload) Finished() bool {
-	return u.offset >= u.size
-}
-
-// Returns the progress in a percentage.
-func (u *Upload) Progress() int64 {
-	return (u.offset * 100) / u.size
-}
-
 // Returns the current upload offset.
-func (u *Upload) Offset() int64 {
+func (u Upload) Offset() int64 {
 	return u.offset
 }
 
+// Returns whether this upload is finished or not.
+func (u Upload) Finished() bool {
+	return u.offset >= u.totalSize
+}
+
+// Returns the progress in a percentage.
+func (u Upload) Progress() int64 {
+	return (u.offset * 100) / u.totalSize
+}
+
 // Returns the size of the upload body.
-func (u *Upload) Size() int64 {
-	return u.size
+func (u Upload) TotalSize() int64 {
+	return u.totalSize
 }
 
 // EncodedMetadata encodes the upload metadata.
-func (u *Upload) EncodedMetadata() string {
+func (u Upload) EncodedMetadata() string {
 	var encoded []string
 
 	for k, v := range u.Metadata {
@@ -94,9 +94,9 @@ func NewUpload(reader io.Reader, size int64, metadata Metadata, fingerprint stri
 	}
 
 	return &Upload{
-		stream: stream,
-		size:   size,
-
+		stream: 	 stream,
+		totalSize:   size,
+		offset: 	 0,
 		Fingerprint: fingerprint,
 		Metadata:    metadata,
 	}

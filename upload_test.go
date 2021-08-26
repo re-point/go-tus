@@ -28,5 +28,5 @@ func TestNewUploadFromFile(t *testing.T) {
 	u, err := NewUploadFromFile(f)
 	assert.Nil(t, err)
 	assert.NotNil(t, u)
-	assert.EqualValues(t, 1048576, u.Size())
+	assert.EqualValues(t, 1048576, u.TotalSize())
 }

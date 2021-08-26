@@ -8,7 +8,6 @@ type Uploader struct {
 	client     *Client
 	url        string
 	upload     *Upload
-	offset     int64
 	aborted    bool
 	uploadSubs []chan Upload
 	notifyChan chan bool
@@ -35,14 +34,10 @@ func (u *Uploader) Url() string {
 	return u.url
 }
 
-// Offset returns the current offset uploaded.
-func (u *Uploader) Offset() int64 {
-	return u.offset
-}
 
 // Upload uploads the entire body to the server.
 func (u *Uploader) Upload() error {
-	for u.offset < u.upload.size && !u.aborted {
+	for !u.upload.Finished() && !u.aborted {
 		err := u.UploadChunck()
 
 		if err != nil {
@@ -57,7 +52,7 @@ func (u *Uploader) Upload() error {
 func (u *Uploader) UploadChunck() error {
 	data := make([]byte, u.client.Config.ChunkSize)
 
-	_, err := u.upload.stream.Seek(u.offset, 0)
+	_, err := u.upload.stream.Seek(u.upload.Offset(), 0)
 
 	if err != nil {
 		return err
@@ -71,15 +66,13 @@ func (u *Uploader) UploadChunck() error {
 
 	body := bytes.NewBuffer(data[:size])
 
-	newOffset, err := u.client.uploadChunck(u.url, body, int64(size), u.offset, u.upload.size)
+	newOffset, err := u.client.uploadChunck(u.url, body, int64(size), *u.upload)
 
 	if err != nil {
 		return err
 	}
 
-	u.offset = newOffset
-
-	u.upload.updateProgress(u.offset)
+	u.upload.SetOffset(newOffset)
 
 	u.notifyChan <- true
 
@@ -103,7 +96,6 @@ func NewUploader(client *Client, url string, upload *Upload, offset int64) *Uplo
 		client,
 		url,
 		upload,
-		offset,
 		false,
 		nil,
 		notifyChan,

@@ -79,7 +79,7 @@ func (c *Client) CreateUpload(u *Upload) (*Uploader, error) {
 	}
 
 	req.Header.Set("Content-Length", "0")
-	req.Header.Set("Upload-Length", strconv.FormatInt(u.size, 10))
+	req.Header.Set("Upload-Length", strconv.FormatInt(u.totalSize, 10))
 	req.Header.Set("Upload-Metadata", u.EncodedMetadata())
 
 	res, err := c.Do(req)
@@ -139,7 +139,7 @@ func (c *Client) ResumeUpload(u *Upload) (*Uploader, error) {
 		return nil, ErrUploadNotFound
 	}
 
-	offset, err := c.getUploadOffset(url, u.size)
+	offset, err := c.getUploadOffset(url, u.totalSize)
 
 	if err != nil {
 		return nil, err
@@ -201,11 +201,11 @@ func  (c *Client) TerminateUpload(u *Upload) error {
 	}
 }
 
-func (c *Client) uploadChunck(url string, body io.Reader, size int64, offset int64, totalSize int64) (int64, error) {
+func (c *Client) uploadChunck(url string, body io.Reader, chunkSize int64, u Upload) (int64, error) {
 	var method string
 	
-	if totalSize < offset + size {
-		log.Printf("compute | invalid serverside: expected %d, actual %d", totalSize, offset + size)
+	if u.totalSize <  u.offset + chunkSize {
+		log.Printf("compute | invalid serverside: expected %d, actual %d", u.totalSize, u.offset + chunkSize)
 		return -1, ErrServerSizeMismatch
 	}
 
@@ -222,8 +222,8 @@ func (c *Client) uploadChunck(url string, body io.Reader, size int64, offset int
 	}
 
 	req.Header.Set("Content-Type", "application/offset+octet-stream")
-	req.Header.Set("Content-Length", strconv.FormatInt(size, 10))
-	req.Header.Set("Upload-Offset", strconv.FormatInt(offset, 10))
+	req.Header.Set("Content-Length", strconv.FormatInt(chunkSize, 10))
+	req.Header.Set("Upload-Offset", strconv.FormatInt(u.offset, 10))
 
 	if c.Config.OverridePatchMethod {
 		req.Header.Set("X-HTTP-Method-Override", "PATCH")
