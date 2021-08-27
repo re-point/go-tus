@@ -111,7 +111,7 @@ func (c *Client) CreateUpload(u *Upload) (*Uploader, error) {
 			c.Config.Store.Set(u.Fingerprint, url)
 		}
 
-		return NewUploader(c, url, u, 0), nil
+		return NewUploader(c, url, u), nil
 	case 412:
 		return nil, ErrVersionMismatch
 	case 413:
@@ -140,12 +140,13 @@ func (c *Client) ResumeUpload(u *Upload) (*Uploader, error) {
 	}
 
 	offset, err := c.getUploadOffset(url, u.totalSize)
-
 	if err != nil {
 		return nil, err
 	}
 
-	return NewUploader(c, url, u, offset), nil
+	u.SetOffset(offset)
+
+	return NewUploader(c, url, u), nil
 }
 
 // CreateOrResumeUpload resumes the upload if already created or creates a new upload in the server.

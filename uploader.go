@@ -89,7 +89,7 @@ func (u *Uploader) broadcastProgress() {
 }
 
 // NewUploader creates a new Uploader.
-func NewUploader(client *Client, url string, upload *Upload, offset int64) *Uploader {
+func NewUploader(client *Client, url string, upload *Upload) *Uploader {
 	notifyChan := make(chan bool)
 
 	uploader := &Uploader{

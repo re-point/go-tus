@@ -325,6 +325,73 @@ func (s *UploadTestSuite) TestResumeUpload() {
 	s.EqualValues(1048576*150, fi.Size)
 }
 
+
+func (s *UploadTestSuite) TestChangeSize() {
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	file := fmt.Sprintf("%s/%d", os.TempDir(), time.Now().Unix())
+
+	f, err := os.Create(file)
+	s.Nil(err)
+
+	defer f.Close()
+
+	err = f.Truncate(1048576 * 150) // 150 MB
+	s.Nil(err)
+
+	cfg := &Config{
+		ChunkSize:           2 * 1024 * 1024,
+		Resume:              true,
+		OverridePatchMethod: false,
+		Store:               NewMockStore(),
+		Header: map[string][]string{
+			"X-Extra-Header": {"somevalue"},
+		},
+	}
+
+	client, err := NewClient(s.url, cfg)
+	s.Nil(err)
+
+	upload, err := NewUploadFromFile(f)
+	s.Nil(err)
+
+	uploader, err := client.CreateUpload(upload)
+	s.Nil(err)
+	s.NotNil(uploader)
+
+	// This will stop the first upload.
+	go func() {
+		time.Sleep(250 * time.Millisecond)
+		uploader.Abort()
+	}()
+
+	err = uploader.Upload()
+	s.Nil(err)
+
+	s.True(uploader.aborted)
+
+ 	err = f.Truncate(1048576 * 149 + 1048576 * 0.5) // 154 MB
+	s.Nil(err)
+
+
+	uploader, err = client.CreateOrResumeUpload(upload)
+	s.Nil(err)
+	s.NotNil(uploader)
+
+	err = uploader.Upload()
+	s.Nil(err)
+
+	up, err := s.store.GetUpload(ctx, uploadIDFromURL(uploader.url))
+	s.Nil(err)
+
+	fi, err := up.GetInfo(ctx)
+	s.Nil(err)
+
+	s.EqualValues(1048576*150, fi.Size)
+}
+
 func TestUploadTestSuite(t *testing.T) {
 	suite.Run(t, new(UploadTestSuite))
 }
